@@ -1,0 +1,26 @@
+{
+  "name": "ts-openapi-gen",
+  "version": "0.8.0",
+  "description": "Generator for open api specifications based on typescript and jsdoc",
+  "main": "index.js",
+  "author": "Skyward App Company, LLC",
+  "license": "MIT",
+  "scripts": {
+    "build": "yarn run tsc",
+    "start": "yarn build && yarn node dist/index.js",
+    "lint": "yarn run eslint src --ext ts",
+    "debug": "yarn build && yarn node --inspect dist/index.js",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.0.3",
+    "@types/node": "^17.0.1",
+    "@types/reflect-metadata": "^0.1.0",
+    "@typescript-eslint/eslint-plugin": "^5.8.0",
+    "@typescript-eslint/parser": "^5.8.0",
+    "eslint": "^8.5.0",
+    "jest": "^27.4.5",
+    "ts-jest": "^27.1.2",
+    "typescript": "^4.5.4"
+  }
+}

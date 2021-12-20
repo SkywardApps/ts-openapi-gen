@@ -1,0 +1,8 @@
+node_modules/
+assets/*override_environment*.json*
+
+# Compiled output
+dist/*
+*.log
+locales/*
+public/
