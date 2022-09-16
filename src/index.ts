@@ -113,7 +113,7 @@ async function main()
 		return item.kindString === 'Class' && !!item.decorators?.find(dec => dec.name === 'controller');
 	} );
 
-	const httpMethods = ['httpGet', 'httpPost', 'httpPut', 'httpDelete', 'httpPath', 'httpHead'];
+	const httpMethods = ['httpGet', 'httpPost', 'httpPut', 'httpDelete', 'httpPatch', 'httpHead'];
 	for(const controller of controllers)
 	{
 		if(!controller.children)
@@ -215,6 +215,30 @@ async function main()
 					document.paths![path]!.get = endpointDocumentation as any;
 				}
 
+				if(decorator.name === 'httpHead')
+				{
+					document.paths![path]!.head = endpointDocumentation as any;
+				}
+
+				if(decorator.name === 'httpPost')
+				{
+					document.paths![path]!.post = endpointDocumentation as any;
+				}
+
+				if(decorator.name === 'httpPut')
+				{
+					document.paths![path]!.put = endpointDocumentation as any;
+				}
+
+				if(decorator.name === 'httpDelete')
+				{
+					document.paths![path]!.delete = endpointDocumentation as any;
+				}
+
+				if(decorator.name === 'httpPatch')
+				{
+					document.paths![path]!.patch = endpointDocumentation as any;
+				}
 			}
 		}
 	}
