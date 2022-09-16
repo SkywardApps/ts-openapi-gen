@@ -161,7 +161,7 @@ async function main()
 							.map<(OpenAPIV3.ReferenceObject | OpenAPIV3.ParameterObject)>(rp => ({
 								name: stripQuotes(rp.decorators!.find(dec => dec.name === 'requestParam')!.arguments?.paramName),
 								in: 'path',
-								description: rp.comment?.shortText || '',
+								description: rp.comment?.shortText ?? '',
 								required: true,
 								schema: schemaFromType(rp.type!) as any,
 								style: 'simple'
@@ -170,7 +170,7 @@ async function main()
 							.map<(OpenAPIV3.ReferenceObject | OpenAPIV3.ParameterObject)>(qp => ({
 								name: stripQuotes(qp.decorators?.find(dec => dec.name === 'queryParam')?.arguments?.queryParamName),
 								in: 'query',
-								description: qp.comment?.shortText || '',
+								description: qp.comment?.shortText ?? '',
 								required: false,
 								schema: schemaFromType(qp.type!) as any,
 								style: 'form'
@@ -187,9 +187,9 @@ async function main()
 						name
 					],
 					summary: signature.comment?.shortText ?? signature.name,
-					description: signature.comment?.text,
+					description: simpleComment(signature.comment),
 					requestBody: bodyParameter?.type ? {
-						description: '',
+						description: simpleComment(bodyParameter.comment),
 						content: {
 							'application/json': {
 								schema: schemaFromType(bodyParameter.type)								
@@ -509,7 +509,8 @@ function convertPathParameters(str: string)
 function schemaFromObject(obj: TypeDoc.DeclarationReflection): OpenAPIV3.SchemaObject 
 {
 	const schemaStart: OpenAPIV3.SchemaObject = {
-		type: 'object'
+		type: 'object',
+		description: simpleComment(obj.comment)
 	};
 
 	// This could just be an index type { [key:type]: type } 
@@ -535,7 +536,13 @@ function schemaFromObject(obj: TypeDoc.DeclarationReflection): OpenAPIV3.SchemaO
 		{
 			if(cursor.type)
 			{
-					collection.properties![cursor.name] = schemaFromType(cursor.type);
+				const schema = schemaFromType(cursor.type);
+				if(!(isReferenceObject(schema)))
+				{
+					schema.title = simpleComment(cursor.comment);
+				}	
+
+				collection.properties![cursor.name] = schema;
 			}
 			return collection;
 		}, schemaStart);
@@ -599,4 +606,14 @@ function deriveFromPromiseOfContent(type: TypeDoc.ReferenceType)
 		console.warn('Found a union of types but none were ok types', typeArgument);
 	}
 	return schemaFromType(type.typeArguments![0]);
+}
+
+function isReferenceObject(obj: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject) : obj is OpenAPIV3.ReferenceObject
+{
+	return !!(obj as OpenAPIV3.ReferenceObject).$ref;
+}
+
+function simpleComment(comment: TypeDoc.Comment | undefined)
+{
+	return [comment?.shortText, comment?.text].filter(text => text?.length).join('\n\n');
 }
