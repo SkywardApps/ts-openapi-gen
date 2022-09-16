@@ -9,7 +9,7 @@
     "build": "yarn run tsc",
     "start": "yarn build && yarn node dist/index.js",
     "lint": "yarn run eslint src --ext ts",
-    "debug": "yarn build && yarn node --inspect dist/index.js",
+    "debug": "yarn build && yarn node --inspect dist/index.js --tsconfig ../../syngenta/cropwise/api-node-batch-management-zones/tsconfig.json --entrypoint ../../syngenta/cropwise/api-node-batch-management-zones/src/controllers",
     "test": "jest"
   },
   "devDependencies": {
@@ -22,5 +22,11 @@
     "jest": "^27.4.5",
     "ts-jest": "^27.1.2",
     "typescript": "^4.5.4"
+  },
+  "dependencies": {
+    "openapi-types": "^10.0.0",
+    "typedoc": "^0.22.10",
+    "typedoc-plugin-missing-exports": "^0.22.6",
+    "yargs": "^17.3.0"
   }
 }
