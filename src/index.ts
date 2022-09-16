@@ -1,7 +1,7 @@
 import yargs from 'yargs';
 import * as TypeDoc from 'typedoc';
 import fs from 'fs';
-import { OpenAPIV3 } from 'openapi-types';
+import { OpenAPI, OpenAPIV3 } from 'openapi-types';
 import { exit } from 'process';
 
 
@@ -346,6 +346,8 @@ function exportReferencedSchemas() : OpenAPIV3.ComponentsObject
 	};
 }
 
+const typeAssignments: { [key: string]: OpenAPIV3.SchemaObject } = {};
+
 function schemaFromType(type: TypeDoc.Type) : OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
 {
 	if(type.type === 'literal')
@@ -365,7 +367,27 @@ function schemaFromType(type: TypeDoc.Type) : OpenAPIV3.SchemaObject | OpenAPIV3
 		{
 			return shimRegistry[referenceType.name](referenceType);
 		}
-		return referenceSchema(referenceType.name);
+
+		if(referenceType.reflection?.kindString === 'Type alias' || referenceType.reflection?.kindString === 'Interface' || referenceType.reflection?.kindString === 'Class')
+		{
+			const reflected = (referenceType.reflection as TypeDoc.DeclarationReflection);
+			for(let i = 0; i < (reflected?.typeParameters?.length ?? 0); ++i)
+			{
+				const parameter = (referenceType.reflection as any).typeParameters[i] as TypeDoc.TypeParameterReflection;
+				const assigned = ((referenceType.typeArguments?.length ?? 0) > i) ? referenceType.typeArguments?.[i] : parameter.default;
+				typeAssignments[parameter.name] = schemaFromType(assigned!) as OpenAPIV3.SchemaObject;
+			}
+			
+			return referenceSchema(referenceType.name);
+		}
+		else if(referenceType.reflection?.kindString === 'Type parameter')
+		{
+			return typeAssignments[referenceType.name];
+		}
+		else
+		{
+			throw new Error('Unknown reference type');
+		}
 	}
 
 	if(type.type === 'intrinsic')
