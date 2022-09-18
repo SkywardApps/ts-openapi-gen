@@ -1,10 +1,18 @@
 {
-  "name": "ts-openapi-gen",
-  "version": "0.8.0",
-  "description": "Generator for open api specifications based on typescript and jsdoc",
+  "name": "@skywardapps/ts-openapi-gen",
+  "version": "1.0.0",
+  "description": "Generator for open api specifications based on Typescript and TypeDoc",
   "main": "index.js",
   "author": "Skyward App Company, LLC",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SkywardApps/ts-openapi-gen.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SkywardApps/ts-openapi-gen/issues"
+  },
+  "homepage": "https://github.com/SkywardApps/ts-openapi-gen#readme",
   "scripts": {
     "build": "yarn run tsc",
     "start": "yarn build && yarn node dist/index.js",
