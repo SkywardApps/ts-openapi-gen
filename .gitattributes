@@ -2,6 +2,8 @@
 * text=auto
 * text eol=lf
 *.zip binary
+*.png binary
+*.jpg binary
 # GitHub Linguist Override
 .yarn/* linguist-vendored
 .pnp.js linguist-vendored

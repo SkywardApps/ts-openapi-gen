@@ -61,7 +61,7 @@ ts-openapi-gen has three parameters:
 
 ## How to write a web api that can be seamlessly auto-documented
 
-Check out our (samples)[samples/getting_started] for example projects that can be documented.  
+Check out our [samples](samples/getting_started) for example projects that can be documented.  
 
 ## How to Contribute
 
