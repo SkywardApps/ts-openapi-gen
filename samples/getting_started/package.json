@@ -1,0 +1,21 @@
+{
+  "name": "getting_started",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "tsc && node dist/index.js"
+  },
+  "author": "Skyward App Company, LLC",
+  "license": "MIT",
+  "dependencies": {
+    "inversify": "^6.0.1",
+    "inversify-express-utils": "^6.4.3",
+    "moment": "^2.29.4",
+    "reflect-metadata": "^0.1.13",
+    "typescript": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.14"
+  }
+}

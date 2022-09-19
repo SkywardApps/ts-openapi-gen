@@ -271,8 +271,8 @@ export class OpenApiDocumentationGenerator
 
 	private addDefaultShims() 
 	{
-		this.AddShim('Promise', this.deriveFromPromiseOfContent);
-		this.AddShim('OkNegotiatedContentResult', this.deriveFromFirstTypeArgument);
+		this.AddShim('Promise', (type) => this.deriveFromPromiseOfContent(type));
+		this.AddShim('OkNegotiatedContentResult', (type) => this.deriveFromFirstTypeArgument(type));
 		this.AddShim('Moment', () => ({ type: 'string', format: 'date-time' }));
 	}
 
