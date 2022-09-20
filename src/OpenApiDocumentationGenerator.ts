@@ -365,7 +365,8 @@ export class OpenApiDocumentationGenerator
 		{
 			const literalType = type as TypeDoc.LiteralType;
 			return {
-				type: 'string'
+				type: typeof(literalType.value) as 'string' | 'number' | 'boolean',
+				enum: [literalType.value]
 			};
 		}
 
@@ -395,7 +396,14 @@ export class OpenApiDocumentationGenerator
 			{
 				return this.typeAssignments[referenceType.name];
 			}
-
+			else if (referenceType.reflection?.kindString === 'Enumeration')
+			{
+				const enums = (referenceType.reflection as TypeDoc.ContainerReflection).children?.map(e => (e.type as TypeDoc.LiteralType));
+				return {
+					type: enums ? typeof(enums[0].value) as 'string' | 'number' | 'boolean' : 'string',
+					enum: enums?.map(e => e.value) ?? []
+				};			
+			}
 			else 
 			{
 				throw new Error('Unknown reference type');
@@ -483,6 +491,9 @@ export class OpenApiDocumentationGenerator
 				oneOf: []
 			};
 
+			// TODO:
+			// Handle strictly literal unions as enumerations
+			// Filter literal nulls and instead set the nullable property.
 			for (const subtype of unionType.types) 
 			{
 				unionSchema.oneOf!.push(this.schemaFromType(subtype));
@@ -537,18 +548,22 @@ export class OpenApiDocumentationGenerator
 		}
 
 		schemaStart.properties = {};
+		schemaStart.required = [];
 		return obj.children.filter(prop => prop.kindString === 'Property')
 			.reduce((collection, cursor) => 
 			{
 				if (cursor.type) 
 				{
 					const schema = this.schemaFromType(cursor.type);
+					collection.properties![cursor.name] = schema;
 					if (!(OpenApiUtil.isReferenceObject(schema))) 
 					{
 						schema.title = OpenApiUtil.simpleComment(cursor.comment);
 					}
-
-					collection.properties![cursor.name] = schema;
+					if(!cursor.flags.isOptional)
+					{
+						collection.required?.push(cursor.name);
+					}
 				}
 				return collection;
 			}, schemaStart);

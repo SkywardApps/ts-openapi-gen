@@ -23,9 +23,13 @@
 			"name": "Launch via Yarn",
 			"runtimeExecutable": "yarn",
 			"runtimeArgs": [
-				"debug"
+				"debug",
+				"--tsconfig",
+				"samples/getting_started/tsconfig.json",
+				"--entrypoint",
+				"samples/getting_started/src"
 			],
-			"port": 9229,
+			"stopOnEntry": true,
 			"skipFiles": [
 				"<node_internals>/**"
 			]

@@ -15,11 +15,13 @@ export class OpenApiUtil
 		}
 	}
 
-	public static isReferenceObject(obj: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject): obj is OpenAPIV3.ReferenceObject {
-		return !!(obj as OpenAPIV3.ReferenceObject).$ref;
+	public static isReferenceObject(obj: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject | undefined): obj is OpenAPIV3.ReferenceObject 
+	{
+		return !!(obj as OpenAPIV3.ReferenceObject)?.$ref;
 	}
 
-	public static simpleComment(comment: TypeDoc.Comment | undefined) {
+	public static simpleComment(comment: TypeDoc.Comment | undefined) 
+	{
 		return [comment?.shortText, comment?.text].filter(text => text?.length).join('\n\n');
 	}
 	
