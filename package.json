@@ -1,8 +1,9 @@
 {
   "name": "@skywardapps/ts-openapi-gen",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Generator for open api specifications based on Typescript and TypeDoc",
   "main": "dist/index.js",
+  "bin": "dist/index.js",
   "author": "Skyward App Company, LLC",
   "license": "MIT",
   "repository": {
@@ -15,7 +16,7 @@
   "homepage": "https://github.com/SkywardApps/ts-openapi-gen#readme",
   "scripts": {
     "build": "yarn run tsc",
-    "start": "yarn build && yarn node dist/index.js",
+    "start": "yarn build && yarn pnpify run node dist/index.js",
     "lint": "yarn run eslint src --ext ts",
     "debug": "yarn build && yarn node --inspect dist/index.js",
     "getting_started": "yarn build && yarn node dist/index.js --tsconfig samples/getting_started/tsconfig.json --entrypoint samples/getting_started/src",
@@ -27,6 +28,7 @@
     "@types/reflect-metadata": "^0.1.0",
     "@typescript-eslint/eslint-plugin": "^5.8.0",
     "@typescript-eslint/parser": "^5.8.0",
+    "@yarnpkg/pnpify": "^4.0.0-rc.50",
     "eslint": "^8.5.0",
     "jest": "^29.0.3",
     "ts-jest": "^29.0.1",
@@ -37,5 +39,13 @@
     "typedoc": "^0.22.10",
     "typedoc-plugin-missing-exports": "^0.22.6",
     "yargs": "^17.3.0"
+  },
+  "packageManager": "yarn@3.6.3",
+  "files": [
+    "/dist"
+  ],
+  "volta": {
+    "node": "18.17.1",
+    "yarn": "3.6.3"
   }
 }

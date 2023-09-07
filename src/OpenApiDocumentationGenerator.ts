@@ -1,6 +1,8 @@
 import * as TypeDoc from 'typedoc';
 import { OpenAPIV3 } from 'openapi-types';
 import { OpenApiUtil } from './OpenApiUtil';
+import { readFile } from 'fs/promises';
+import { isTypeNode } from 'typescript';
 
 export class OpenApiDocumentationGenerator 
 {
@@ -40,8 +42,8 @@ export class OpenApiDocumentationGenerator
 
 	public async GenerateOpenApiSchema() 
 	{
-		const project = await this.createTypeDocProject();
-
+		const fileData = await readFile(this.entrypoint, { encoding: 'utf-8' });
+		const project = JSON.parse(fileData) as TypeDoc.ProjectReflection;
 		if (!project || !project.children) 
 		{
 			return;
@@ -93,6 +95,7 @@ export class OpenApiDocumentationGenerator
 			}
 
 			const name = controller.name;
+			const path = controller.decorators!.find(dec => dec.name === 'controller')?.arguments?.path ?? '';
 			const endpoints = this.findInTypeDoc(controller.children, (item) => 
 			{
 				return item.kindString === 'Method'
@@ -108,7 +111,7 @@ export class OpenApiDocumentationGenerator
 					continue;
 				}
 
-				this.addPathEndpointsAndDocumentation(signature, endpoint, httpMethods, document, name);
+				this.addPathEndpointsAndDocumentation(signature, endpoint, httpMethods, document, name, path);
 			}
 		}
 
@@ -117,7 +120,7 @@ export class OpenApiDocumentationGenerator
 	}
 
 
-	private addPathEndpointsAndDocumentation(signature: TypeDoc.SignatureReflection, endpoint: TypeDoc.DeclarationReflection, httpMethods: string[], document: OpenAPIV3.Document<{}>, name: string) 
+	private addPathEndpointsAndDocumentation(signature: TypeDoc.SignatureReflection, endpoint: TypeDoc.DeclarationReflection, httpMethods: string[], document: OpenAPIV3.Document<{}>, name: string, root: string) 
 	{
 		const requestParameters = signature.parameters?.filter(p => p.kindString === 'Parameter'
 			&& p.decorators?.find(dec => dec.name === 'requestParam'));
@@ -132,15 +135,16 @@ export class OpenApiDocumentationGenerator
 		for (const decorator of decorators) 
 		{
 			//path
-			const { path, endpointDocumentation } = this.createEndpointDocumentation(decorator, document, requestParameters, queryParameters, name, signature, bodyParameter);
+			const { path, endpointDocumentation } = this.createEndpointDocumentation(decorator, document, requestParameters, queryParameters, name, signature, bodyParameter, root);
 			this.addEndpointWithDocumentation(decorator, document, path, endpointDocumentation);
 		}
 	}
 
-	private createEndpointDocumentation(decorator: TypeDoc.Decorator, document: OpenAPIV3.Document<{}>, requestParameters: TypeDoc.ParameterReflection[] | undefined, queryParameters: TypeDoc.ParameterReflection[] | undefined, name: string, signature: TypeDoc.SignatureReflection, bodyParameter: TypeDoc.ParameterReflection | undefined) 
+	private createEndpointDocumentation(decorator: TypeDoc.Decorator, document: OpenAPIV3.Document<{}>, requestParameters: TypeDoc.ParameterReflection[] | undefined, queryParameters: TypeDoc.ParameterReflection[] | undefined, name: string, signature: TypeDoc.SignatureReflection, bodyParameter: TypeDoc.ParameterReflection | undefined, root: string) 
 	{
-		let path = (decorator.arguments.path as string);
-		path = OpenApiUtil.convertPathParameters(OpenApiUtil.stripQuotes(path));
+		const path = OpenApiUtil.convertPathParameters(OpenApiUtil.stripQuotes(root)) 
+			+  OpenApiUtil.convertPathParameters(OpenApiUtil.stripQuotes((decorator.arguments.path as string)));
+
 		console.log(path);
 		if (!document.paths![path]) 
 		{
@@ -234,46 +238,14 @@ export class OpenApiDocumentationGenerator
 		}
 	}
 
-	private async createTypeDocProject() 
-	{
-		const app = new TypeDoc.Application();
-		// If you want TypeDoc to load tsconfig.json / typedoc.json files
-		app.options.addReader(new TypeDoc.TSConfigReader());
-		app.options.addReader(new TypeDoc.TypeDocReader());
-
-		/*
-			"typedocOptions": {
-				"entryPoints": ["src/controllers"],
-				"out": "docs",
-				"json": "all.json",
-				"entryPointStrategy": "expand",
-				"pretty": true
-			}
-			*/
-		app.bootstrap({
-			// typedoc options here
-			entryPoints: [this.entrypoint],
-			tsconfig: this.tsconfig,
-			json: this.out,
-			entryPointStrategy: 'Expand',
-			pretty: true
-		});
-
-		const project = app.convert();
-
-		if(!!project && !!app)
-		{
-			await app.generateJson(project, './documentation.json');
-		}
-
-		return project;
-	}
-
 	private addDefaultShims() 
 	{
 		this.AddShim('Promise', (type) => this.deriveFromPromiseOfContent(type));
+		this.AddShim('IJsonData', (type) => this.deriveFromPromiseOfContent(type));
 		this.AddShim('OkNegotiatedContentResult', (type) => this.deriveFromFirstTypeArgument(type));
 		this.AddShim('Moment', () => ({ type: 'string', format: 'date-time' }));
+		this.AddShim('Date', () => ({ type: 'string', format: 'date-time' }));
+		this.AddShim('unknown', () => ({ type: 'object' }));
 	}
 
 	private findInTypeDoc(nodes: TypeDoc.DeclarationReflection[], matcher: (item: TypeDoc.DeclarationReflection, parents: TypeDoc.DeclarationReflection[]) => boolean, recurse: number = -1, parents: TypeDoc.DeclarationReflection[] = []) 
@@ -304,9 +276,11 @@ export class OpenApiDocumentationGenerator
 		this.typeRegistry[name] = typeNode;
 	}
 
-	private referenceSchema(name: string): OpenAPIV3.ReferenceObject 
+	private referenceSchema(name: string, typeArguments?:TypeDoc.Type[] | undefined): OpenAPIV3.ReferenceObject 
 	{
-		if (!this.schemaRegistry[name]) 
+		const typeReferenceArguments = (typeArguments as TypeDoc.ReferenceType[]) ?? [];
+		const finalName = [name, ...typeReferenceArguments.map(t => t.name)].join('_');
+		if (!this.schemaRegistry[finalName]) 
 		{
 			if (!this.typeRegistry[name]) 
 			{
@@ -318,26 +292,35 @@ export class OpenApiDocumentationGenerator
 			}
 
 			// put in a placeholder because we are evaluating this type and need to not cause an infinite loop!
-			this.schemaRegistry[name] = {};
+			this.schemaRegistry[finalName] = {};
 
-			const node = this.typeRegistry[name];
+			const node = this.typeRegistry[name] as any;
+
+			for(let i = 0; i < (node.typeParameter?.length ?? 0); i++)
+			{
+				const typeParam = node.typeParameter![i];
+				const typeAssignment = typeReferenceArguments[i];
+				this.typeAssignments[typeParam.name] = (typeAssignment as any).name;
+			}
+
 			// Descend from the type node into the relevant type.  THis should be any of interface, Type Alias, class
 			if (node.kindString === 'Interface') 
 			{
-				this.schemaRegistry[name] = this.schemaFromObject(node as any);
+				this.schemaRegistry[finalName] = this.schemaFromObject(node as any);
 			}
 			else if (node.kindString === 'Class') 
 			{
-				this.schemaRegistry[name] = this.schemaFromObject(node as any);
+				this.schemaRegistry[finalName] = this.schemaFromObject(node as any);
 			}
 
 			else 
 			{
-				this.schemaRegistry[name] = this.schemaFromType(node.type as any) as OpenAPIV3.SchemaObject;
+				this.schemaRegistry[finalName] = this.schemaFromType(node.type as any) as OpenAPIV3.SchemaObject;
 			}
 		}
+
 		return {
-			$ref: `#/components/schemas/${name}`
+			$ref: `#/components/schemas/${finalName}`
 		};
 	}
 
@@ -382,14 +365,6 @@ export class OpenApiDocumentationGenerator
 
 			if (referenceType.reflection?.kindString === 'Type alias' || referenceType.reflection?.kindString === 'Interface' || referenceType.reflection?.kindString === 'Class') 
 			{
-				const reflected = (referenceType.reflection as TypeDoc.DeclarationReflection);
-				for (let i = 0; i < (reflected?.typeParameters?.length ?? 0); ++i) 
-				{
-					const parameter = (referenceType.reflection as any).typeParameters[i] as TypeDoc.TypeParameterReflection;
-					const assigned = ((referenceType.typeArguments?.length ?? 0) > i) ? referenceType.typeArguments?.[i] : parameter.default;
-					this.typeAssignments[parameter.name] = this.schemaFromType(assigned!) as OpenAPIV3.SchemaObject;
-				}
-
 				return this.referenceSchema(referenceType.name);
 			}
 			else if (referenceType.reflection?.kindString === 'Type parameter') 
@@ -404,9 +379,17 @@ export class OpenApiDocumentationGenerator
 					enum: enums?.map(e => e.value) ?? []
 				};			
 			}
+			if (this.typeRegistry[referenceType.name]) 
+			{
+				return this.referenceSchema(referenceType.name, referenceType.typeArguments);
+			}
+			else if(this.typeAssignments[referenceType.name])
+			{
+				return this.schemaFromType({ type: 'reference', name: this.typeAssignments[referenceType.name]} as TypeDoc.ReferenceType);
+			}
 			else 
 			{
-				throw new Error('Unknown reference type');
+				throw new Error(`Unknown reference type: ${referenceType.name}`);
 			}
 		}
 
