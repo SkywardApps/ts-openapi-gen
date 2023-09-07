@@ -3,7 +3,8 @@ import { OpenAPIV3 } from 'openapi-types';
 
 export class OpenApiUtil 
 {
-	public static convertPathParameters(str: string) {
+	public static convertPathParameters(str: string) 
+	{
 		try 
 		{
 			return str.replace(/:([^/]+)/g, '{$1}');

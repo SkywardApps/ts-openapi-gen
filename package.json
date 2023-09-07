@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "openapi-types": "^10.0.0",
+    "typedoc": "0.22",
     "yargs": "^17.3.0"
   },
   "packageManager": "yarn@3.6.3",
