@@ -1,6 +1,6 @@
 {
   "name": "@skywardapps/ts-openapi-gen",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Generator for open api specifications based on Typescript and TypeDoc",
   "main": "dist/index.js",
   "bin": "dist/index.js",

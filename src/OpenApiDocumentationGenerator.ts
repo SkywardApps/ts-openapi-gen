@@ -545,7 +545,7 @@ export class OpenApiDocumentationGenerator
 					collection.properties![cursor.name] = schema;
 					if (!(OpenApiUtil.isReferenceObject(schema))) 
 					{
-						schema.title = OpenApiUtil.simpleComment(cursor.comment);
+						schema.title = schema.description = OpenApiUtil.simpleComment(cursor.comment);
 					}
 					if(!cursor.flags.isOptional)
 					{
