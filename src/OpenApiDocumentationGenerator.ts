@@ -11,21 +11,18 @@ export class OpenApiDocumentationGenerator
 	private readonly schemaRegistry: { [key: string]: OpenAPIV3.SchemaObject; } = {};
 	private readonly typeAssignments: { [key: string]: OpenAPIV3.SchemaObject; } = {};
 
-	private readonly out: string;
 	private readonly entrypoint: string;
-	private readonly tsconfig: string;
+	private readonly description: string | undefined;
 
 	/**
 	 * Initialize with configuration for how this behaves.
 	 * @param out 
 	 * @param entrypoint 
-	 * @param tsconfig 
 	 */
-	public constructor(out: string, entrypoint: string, tsconfig: string) 
+	public constructor(entrypoint: string, description: string | undefined) 
 	{
-		this.out = out;
 		this.entrypoint = entrypoint;
-		this.tsconfig = tsconfig;
+		this.description = description;
 		
 		// Add any specific type shims
 		this.addDefaultShims();
@@ -54,7 +51,6 @@ export class OpenApiDocumentationGenerator
 				title: `OpenAPI schema for ${project.name}`,
 				version: '1',
 				description: '',
-				/*
 				contact: {
 					email: '',
 					name: '',
@@ -64,12 +60,59 @@ export class OpenApiDocumentationGenerator
 					name: '',
 					url: ''
 				},
-				termsOfService: '',*/
+				termsOfService: '',
 			},
 			openapi: '3.1.0',
 			paths: {},
-			components: {}
+			components: {},
+			tags: []
 		};
+
+		if(this.description)
+		{
+			const descriptionData = await readFile(this.description, { encoding: 'utf-8' });
+			const descriptionLines = descriptionData.split('\n');
+			const remainingDescriptionLines = descriptionLines.filter((line) => 
+			{
+				if(line.startsWith('@'))
+				{
+					const [keyDirty, valueDirty] = line.split(':');
+					const value = valueDirty.trim();
+					const key = keyDirty.trim().toLowerCase();
+					switch(key)
+					{
+					case '@title':
+						document.info.title = value;
+						break;
+					case '@email':
+						document.info.contact!.email = value;
+						break;
+					case '@version':
+						document.info.version = value;
+						break;
+					case '@name':
+						document.info.contact!.name = value;
+						break;
+					case '@url':
+						document.info.contact!.url = value;
+						break;
+					case '@licence.name':
+						document.info.license!.name = value;
+						break;
+					case '@license.url':
+						document.info.license!.url = value;
+						break;
+					case '@termsofservice':
+						document.info.termsOfService = value;
+						break;
+					}
+				
+					return false;
+				}
+				return true;
+			});
+			document.info.description = remainingDescriptionLines.join('\n');
+		}
 
 		const referencedTypes = this.findInTypeDoc(project.children, (item) => 
 		{
@@ -96,6 +139,10 @@ export class OpenApiDocumentationGenerator
 
 			const name = controller.name;
 			const path = controller.decorators!.find(dec => dec.name === 'controller')?.arguments?.path ?? '';
+			document.tags!.push({
+				name,
+				description: controller.comment?.shortText
+			});
 			const endpoints = this.findInTypeDoc(controller.children, (item) => 
 			{
 				return item.kindString === 'Method'
