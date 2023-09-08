@@ -10,15 +10,18 @@ Code an API using [Express](http://expressjs.com/) and [inversifyJS](https://inv
 
 ![Endpoint Code](docs/Endpoint.png)
 
-... and type it using [Typescript](https://www.typescriptlang.org/).
+... and type it using [Typescript](https://www.typescriptlang.org/) (NOTE: due to typedoc limitations, only supports 4.0 -> 4.7).
 
 ![Types](docs/Types.png)
 
+Install typedoc and ts-openapi-gen
 
+`yarn add --dev typedoc@~0.22 typedoc-plugin-expand-object-like-types@^0.1 typedoc-plugin-missing-exports@^2.1 ts-openapi-gen`
 
 Now generate your [OpenApi](https://www.openapis.org/) schema directly from your code -- types and comments extracted, inferred, and included!
 
-`npx ts-openapi-gen --tsconfig ./web-api/tsconfig.json --entrypoint ./web/src/controllers`
+`yarn run typedoc --json ./docs/typedoc.json --entryPointStrategy Expand --disableSources --plugin typedoc-plugin-expand-object-like-types --plugin typedoc-plugin-missing-exports --pretty src/controllers`
+`yarn run ts-openapi-gen --entrypoint ./docs/typedoc.json --out assets/public/openapi.json`
 
 ![Generated OpenApi](docs/GeneratedDocumentation.png)
 
@@ -30,7 +33,7 @@ JSDoc for commenting, and inversify-express-utils to scaffold your API endpoints
 #### Requirements:
 
 * InversifyJS & inversify-express-utils
-* Typescript
+* Typescript 4.7
 * Express
 
 Your project must be in buildable state (node_modules installed, code builds, etc).  Point ts-openapi-gen to your root tsconfig file and the location of the entrypoints (the controllers).
@@ -41,8 +44,8 @@ ts-openapi-gen has three parameters:
 
 |Parameter|Description|Required|
 |--|-|-|
-| --tsconfig | Points to the tsconfig for your project; required to be able to interpret the types included and referenced. | :heavy_check_mark: |
-| --entrypoint | The path to search for entrypoints; in this case, the controllers annotated with `@controller` that provide the endpoints for your project. | :heavy_check_mark: |
+| --typedoc | The generated typedoc json file. | :heavy_check_mark: |
+| --tsconfig | Points to the tsconfig for your project; required to be able to interpret the types included and referenced; defaults to tsconfig.json in the current directory. |  |
 | --out | The name of the file to write the schema to; defaults to `openapi.json` if not provided. | |
 
 ## Features

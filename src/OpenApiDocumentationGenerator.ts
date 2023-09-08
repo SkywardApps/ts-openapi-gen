@@ -66,7 +66,7 @@ export class OpenApiDocumentationGenerator
 				},
 				termsOfService: '',*/
 			},
-			openapi: '3.0.3',
+			openapi: '3.1.0',
 			paths: {},
 			components: {}
 		};
@@ -188,7 +188,7 @@ export class OpenApiDocumentationGenerator
 						schema: this.schemaFromType(bodyParameter.type)
 					}
 				},
-				requred: true
+				required: true
 			} as OpenAPIV3.RequestBodyObject : undefined,
 			deprecated: !!signature.comment?.tags?.find(tag => tag.tagName === 'deprecated'),
 			responses: {
@@ -415,9 +415,13 @@ export class OpenApiDocumentationGenerator
 					type: 'object'
 				};
 			case 'undefined':
-				return {};
+				return {
+					type: 'null'
+				} as any;
 			case 'void':
-				return {};
+				return {
+					type: 'null'
+				} as any;
 			default:
 				throw new Error(`Unrecognized intrinsic type ${intrisicType.name}`);
 			}
