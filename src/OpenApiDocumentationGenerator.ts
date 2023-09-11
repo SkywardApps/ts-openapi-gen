@@ -68,52 +68,6 @@ export class OpenApiDocumentationGenerator
 			tags: []
 		};
 
-		if(this.description)
-		{
-			const descriptionData = await readFile(this.description, { encoding: 'utf-8' });
-			const descriptionLines = descriptionData.split('\n');
-			const remainingDescriptionLines = descriptionLines.filter((line) => 
-			{
-				if(line.startsWith('@'))
-				{
-					const [keyDirty, valueDirty] = line.split(':');
-					const value = valueDirty.trim();
-					const key = keyDirty.trim().toLowerCase();
-					switch(key)
-					{
-					case '@title':
-						document.info.title = value;
-						break;
-					case '@email':
-						document.info.contact!.email = value;
-						break;
-					case '@version':
-						document.info.version = value;
-						break;
-					case '@name':
-						document.info.contact!.name = value;
-						break;
-					case '@url':
-						document.info.contact!.url = value;
-						break;
-					case '@licence.name':
-						document.info.license!.name = value;
-						break;
-					case '@license.url':
-						document.info.license!.url = value;
-						break;
-					case '@termsofservice':
-						document.info.termsOfService = value;
-						break;
-					}
-				
-					return false;
-				}
-				return true;
-			});
-			document.info.description = remainingDescriptionLines.join('\n');
-		}
-
 		const referencedTypes = this.findInTypeDoc(project.children, (item) => 
 		{
 			return item.kindString === 'Interface' || item.kindString == 'Type alias' || item.kindString == 'Class';
@@ -163,9 +117,87 @@ export class OpenApiDocumentationGenerator
 		}
 
 		document.components = this.exportReferencedSchemas();
+		await this.configureDocumentDescription(document);
+
 		return document;
 	}
 
+
+	private async configureDocumentDescription(document: OpenAPIV3.Document<{}>) 
+	{
+		if(this.description)
+		{
+			const descriptionData = await readFile(this.description, { encoding: 'utf-8' });
+			const descriptionLines = descriptionData.split('\n');
+			const remainingDescriptionLines = descriptionLines.filter((line) => 
+			{
+				if (line.startsWith('@')) 
+				{
+					const [_, keyDirty, valueDirty] = line.match(/\s*^(@[^:]+)\s*:\s*(.+)\s*$/) ?? [];
+					console.error(`[${keyDirty}, ${valueDirty}] = ${line}`);
+					const value = valueDirty.trim();
+					const key = keyDirty.trim().toLowerCase();
+
+					if (key.startsWith('@oauth2')) 
+					{
+						const [full, name, flow, prop] = key.match(/@oauth2\.([a-zA-z-_]+)\.([a-zA-z-_]+)\.(.+)/) ?? [];
+						if (name && flow && prop) 
+						{
+							this.configureOauth2Credentials(document, name, flow, prop, value);
+						}
+
+						else 
+						{
+							console.error(`Unrecognized key ${key}`);
+						}
+						return false;
+					}
+
+					configureDocumentProperties(key, document, value);
+					return false;
+				}
+				return true;
+			});
+			document.info.description = remainingDescriptionLines.join('\n');
+		}
+	}
+
+	private configureOauth2Credentials(document: OpenAPIV3.Document<{}>, name: string, flow: string, prop: string, value: string) 
+	{
+		document.components = document.components ?? {};
+		document.components.securitySchemes = document.components.securitySchemes ?? {};
+		const securityScheme: OpenAPIV3.OAuth2SecurityScheme = (document.components.securitySchemes[name] ?? {
+			type: 'oauth2',
+			flows: {}
+		}) as OpenAPIV3.OAuth2SecurityScheme;
+		document.components.securitySchemes[name] = securityScheme;
+
+		if (flow === 'password') 
+		{
+			this.configureOauth2PasswordFlow(securityScheme, prop, value, document, name);
+		}
+	}
+
+	private configureOauth2PasswordFlow(securityScheme: OpenAPIV3.OAuth2SecurityScheme, prop: string, value: string, document: OpenAPIV3.Document<{}>, name: string) 
+	{
+		securityScheme.flows['password'] = securityScheme.flows['password'] ?? {
+			scopes: {},
+			tokenUrl: prop
+		};
+
+		if (prop.startsWith('scopes')) 
+		{
+			const [lead, scopeName] = prop.split('.');
+			securityScheme.flows['password'].scopes[scopeName] = value;
+			document.security = [{
+				[name]: [scopeName]
+			}];
+		}
+		else if (prop === 'tokenurl') 
+		{
+			securityScheme.flows['password'].tokenUrl = value;
+		}
+	}
 
 	private addPathEndpointsAndDocumentation(signature: TypeDoc.SignatureReflection, endpoint: TypeDoc.DeclarationReflection, httpMethods: string[], document: OpenAPIV3.Document<{}>, name: string, root: string) 
 	{
@@ -677,4 +709,38 @@ export class OpenApiDocumentationGenerator
 	}
 }
 
+
+function configureDocumentProperties(key: string, document: OpenAPIV3.Document<{}>, value: string) 
+{
+	switch (key) 
+	{
+	case '@title':
+		document.info.title = value;
+		break;
+	case '@email':
+			document.info.contact!.email = value;
+		break;
+	case '@version':
+		document.info.version = value;
+		break;
+	case '@name':
+			document.info.contact!.name = value;
+		break;
+	case '@url':
+			document.info.contact!.url = value;
+		break;
+	case '@licence.name':
+			document.info.license!.name = value;
+		break;
+	case '@license.url':
+			document.info.license!.url = value;
+		break;
+	case '@termsofservice':
+		document.info.termsOfService = value;
+		break;
+	default:
+		console.error(`Unrecognized key ${key}`);
+		break;
+	}
+}
 
