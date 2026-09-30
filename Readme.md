@@ -2,6 +2,8 @@
 
 A generator for [OpenApi documentation](https://www.openapis.org/) based on Typescript, Express, Inversify and TypeDoc.
 
+Created by [Nicholas Elliott](https://nicholasmtelliott.com) at Skyward App Company. Maintained by [@NicholasMTElliott](https://github.com/NicholasMTElliott).
+
 
 
 ## Overview
@@ -78,7 +80,7 @@ Check out our [Contribution Guide](Contributing.md)!  Some examples of what you 
 ## Authors
 
 ![Skyward](docs/skyward.jpg)
-[Skyward App Company, LLC](https://skywardapps.com)
+[Nicholas Elliott](https://nicholasmtelliott.com) at [Skyward App Company, LLC](https://skywardapps.com)
 
 ## Technologies
 
