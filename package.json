@@ -20,7 +20,6 @@
     "start": "yarn build && yarn pnpify run node dist/index.js",
     "lint": "yarn run eslint src --ext ts",
     "debug": "yarn build && yarn node --inspect dist/index.js",
-    "getting_started": "yarn build && yarn node dist/index.js --tsconfig samples/getting_started/tsconfig.json --entrypoint samples/getting_started/src",
     "test": "jest"
   },
   "devDependencies": {
